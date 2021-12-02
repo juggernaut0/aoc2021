@@ -26,6 +26,7 @@ mod day22;
 mod day23;
 mod day24;
 mod day25;
+mod util;
 
 const DAYS: [&dyn Solution; 25] = [
     &day1::Solution,
@@ -56,8 +57,8 @@ const DAYS: [&dyn Solution; 25] = [
 ];
 
 fn main() {
-    let matches = App::new("aoc2019")
-        .about("Advent of Code 2019")
+    let matches = App::new("aoc2021")
+        .about("Advent of Code 2021")
         .arg(Arg::with_name("day").required(true))
         .arg(Arg::with_name("puzzle").required(true))
         .arg(Arg::with_name("log_level")

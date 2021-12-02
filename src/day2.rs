@@ -1,14 +1,13 @@
 #![allow(unused_variables)]
 
 use std::str::FromStr;
+use crate::util::parse_lines;
 
 pub struct Solution;
 
 impl crate::Solution for Solution {
    fn solve_1(&self, input: String) -> String {
-       let (x, y) = input
-           .lines()
-           .map(|it| it.parse::<Direction>().unwrap())
+       let (x, y) = parse_lines(&input)
            .fold((0, 0), |(x, y), b| {
                match b {
                    Direction::Forward(n) => (x + n, y),
@@ -19,9 +18,7 @@ impl crate::Solution for Solution {
    }
 
    fn solve_2(&self, input: String) -> String {
-       let (x, y, _) = input
-           .lines()
-           .map(|it| it.parse::<Direction>().unwrap())
+       let (x, y, _) = parse_lines(&input)
            .fold((0, 0, 0), |(pos, depth, aim), b| {
                match b {
                    Direction::Forward(n) => (pos + n, depth + aim*n, aim),
