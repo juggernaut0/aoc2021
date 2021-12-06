@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 pub struct Solution;
 
 impl crate::Solution for Solution {
@@ -13,10 +11,10 @@ impl crate::Solution for Solution {
 }
 
 fn solve(input: &str, steps: u32) -> String {
-    let fish_list = input.split(',').map(|it| it.trim().parse().unwrap());
-    let mut counts = HashMap::new();
+    let fish_list = input.split(',').map(|it| it.trim().parse::<usize>().unwrap());
+    let mut counts = [0; 9];
     for fish in fish_list {
-        *counts.entry(fish).or_default() += 1;
+        counts[fish] += 1;
     }
     let mut school = School { counts };
 
@@ -24,23 +22,23 @@ fn solve(input: &str, steps: u32) -> String {
         school.step();
     }
 
-    format!("{}", school.counts.values().sum::<usize>())
+    format!("{}", school.counts.iter().sum::<u64>())
 }
 
 struct School {
-    counts: HashMap<u8, usize>, // timer value to num fish
+    counts: [u64; 9], // timer value to num fish
 }
 
 impl School {
     fn step(&mut self) {
-        let mut new = HashMap::new();
+        let mut new = [0; 9];
         for t in 0..9 {
-            let n = self.counts.get(&t).copied().unwrap_or(0);
+            let n = self.counts[t];
             if t == 0 {
-                *new.entry(8).or_default() += n;
-                *new.entry(6).or_default() += n;
+                new[8] += n;
+                new[6] += n;
             } else {
-                *new.entry(t-1).or_default() += n;
+                new[t-1] += n;
             }
         }
         self.counts = new;
