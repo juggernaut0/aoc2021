@@ -80,18 +80,12 @@ impl Graph {
                 }
             })
             .filter_map(move |r| {
-                if r.is_big() {
+                if r.is_big() || !self.visited.contains(&r) {
                     Some(self.make_step(r, self.visited_twice))
-                } else if self.visited.contains(&r) {
-                    if r.0.as_str() == "start" || r.0.as_str() == "end" {
-                        None
-                    } else if !self.visited_twice {
-                        Some(self.make_step(r, true))
-                    } else {
-                        None
-                    }
+                } else if self.visited_twice || r.0.as_str() == "start" || r.0.as_str() == "end" {
+                    None
                 } else {
-                    Some(self.make_step(r, self.visited_twice))
+                    Some(self.make_step(r, true))
                 }
             })
     }
