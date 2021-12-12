@@ -88,12 +88,11 @@ fn most_common(v: &[BitStr], i: usize) -> Option<bool> {
 
 #[cfg(test)]
 mod test {
-    use log::Level;
     use crate::Solution;
     use super::*;
     #[test]
     fn test_2() {
-        simple_logger::init_with_level(Level::Trace).unwrap();
+        crate::init_test_logging();
         let inp = "\
 00100
 11110

@@ -114,3 +114,10 @@ trait Solution {
     fn solve_1(&self, input: String) -> String;
     fn solve_2(&self, input: String) -> String;
 }
+
+#[cfg(test)]
+fn init_test_logging() {
+    use std::sync::Once;
+    static TEST_INIT: Once = Once::new();
+    TEST_INIT.call_once(|| simple_logger::init_with_level(Level::Trace).unwrap());
+}

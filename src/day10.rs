@@ -123,13 +123,12 @@ fn is_opening(c: char) -> bool {
 
 #[cfg(test)]
 mod test {
-    use log::Level;
     use crate::Solution;
     use super::*;
 
     #[test]
     fn test1() {
-        simple_logger::init_with_level(Level::Trace);
+        crate::init_test_logging();
 
         let inp = "\
 [({(<(())[]>[[{[]{<()<>>
