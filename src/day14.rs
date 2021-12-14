@@ -71,8 +71,8 @@ fn apply_rules(pairs: HashMap<(char, char), u64>, rules: &[Rule]) -> HashMap<(ch
         if let Some(rule) = rules.iter().find(|rule| rule.in1 == a && rule.in2 == b) {
             let c = rule.out;
             log::debug!("adding a {}{} and {}{} from {}{} -> {}", a, c, c, b, a, b, c);
-            *res.entry((a, rule.out)).or_default() += count;
-            *res.entry((rule.out, b)).or_default() += count;
+            *res.entry((a, c)).or_default() += count;
+            *res.entry((c, b)).or_default() += count;
         } else {
             log::debug!("rule not found for {}{}", a, b);
             *res.entry((a, b)).or_default() += count;
