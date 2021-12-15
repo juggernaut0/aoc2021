@@ -52,19 +52,16 @@ fn solve(map: Map, goal: Point) -> String {
                 continue
             }
         }
-        if let Some(c) = fastest_to.get(&goal).copied() {
-            if c <= path.cost {
-                continue
-            }
-        }
         fastest_to.insert(current, path.cost);
 
         for a in current.adj() {
-            let new_cost = path.cost + map.get_risk(&a);
-            let p = Path { current: a, cost: new_cost };
-            let priority = p.priority();
+            if !fastest_to.contains_key(&a) {
+                let new_cost = path.cost + map.get_risk(&a);
+                let p = Path { current: a, cost: new_cost };
+                let priority = p.priority();
 
-            q.push(p, priority);
+                q.push(p, priority);
+            }
         }
     }
 
@@ -122,6 +119,6 @@ struct Path {
 
 impl Path {
     fn priority(&self) -> u32 {
-        u32::MAX - self.cost - self.current.distance_to(&Point(99, 99))
+        u32::MAX - self.cost
     }
 }
