@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap};
 use std::str::FromStr;
-use priority_queue::PriorityQueue;
 
 pub struct Solution;
 
@@ -33,14 +33,13 @@ impl crate::Solution for Solution {
 }
 
 fn solve(map: Map, goal: Point) -> String {
-    let mut q = PriorityQueue::new();
+    let mut q = BinaryHeap::new();
     let p = Path { current: Point(0, 0), cost: 0 };
-    let priority = p.priority();
-    q.push(p, priority);
+    q.push(p);
 
     let mut fastest_to: HashMap<Point, u32> = HashMap::new();
 
-    while let Some((path, _)) = q.pop() {
+    while let Some(path) = q.pop() {
         let current = path.current;
 
         if current == goal {
@@ -58,9 +57,8 @@ fn solve(map: Map, goal: Point) -> String {
             if !fastest_to.contains_key(&a) {
                 let new_cost = path.cost + map.get_risk(&a);
                 let p = Path { current: a, cost: new_cost };
-                let priority = p.priority();
 
-                q.push(p, priority);
+                q.push(p);
             }
         }
     }
@@ -80,10 +78,6 @@ impl Point {
         let w = Point(x-1, y);
 
         [n, e, s, w]
-    }
-
-    fn distance_to(&self, other: &Point) -> u32 {
-        ((self.0 - other.0).abs() + (self.1 - other.1).abs()) as u32
     }
 }
 
@@ -111,7 +105,6 @@ impl FromStr for Map {
     }
 }
 
-#[derive(Eq, PartialEq, Hash, Debug)]
 struct Path {
     cost: u32,
     current: Point,
@@ -119,6 +112,25 @@ struct Path {
 
 impl Path {
     fn priority(&self) -> u32 {
-        u32::MAX - self.cost
+        self.cost
+    }
+}
+
+impl PartialEq for Path {
+    fn eq(&self, other: &Self) -> bool {
+        self.priority().eq(&other.priority())
+    }
+}
+impl Eq for Path {}
+
+impl PartialOrd for Path {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Path {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.priority().cmp(&other.priority()).reverse()
     }
 }
