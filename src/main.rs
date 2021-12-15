@@ -1,3 +1,4 @@
+use std::time::Instant;
 use clap::{App, Arg};
 use log::Level;
 
@@ -102,12 +103,14 @@ fn main() {
     };
 
     let solution = DAYS[day-1];
+    let start = Instant::now();
     let answer = match puzzle {
         1 => solution.solve_1(input),
         2 => solution.solve_2(input),
         _ => unreachable!(),
     };
     println!("{}", answer);
+    println!("Elapsed: {}ms", start.elapsed().as_millis());
 }
 
 trait Solution {
