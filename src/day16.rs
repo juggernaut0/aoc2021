@@ -1,14 +1,16 @@
+use std::vec::IntoIter;
+
 pub struct Solution;
 
 impl crate::Solution for Solution {
    fn solve_1(&self, input: String) -> String {
-       let packet = new_parser(&input).parse_packet();
+       let packet = Parser::of_str(&input).parse_packet();
 
        format!("{}", packet.sum_version())
    }
 
    fn solve_2(&self, input: String) -> String {
-       let packet = new_parser(&input).parse_packet();
+       let packet = Parser::of_str(&input).parse_packet();
 
        format!("{}", packet.eval())
    }
@@ -30,19 +32,25 @@ fn parse_input(input: &str) -> Vec<bool> {
         .collect()
 }
 
-struct Parser<T> {
+struct Parser<T: Iterator<Item=bool>> {
     stream: T,
     current: usize,
 }
 
-fn new_parser(input: &str) -> Parser<impl Iterator<Item=bool>> {
-    Parser {
-        stream: parse_input(input).into_iter(),
-        current: 0,
+impl Parser<IntoIter<bool>> {
+    fn of_str(input: &str) -> Parser<IntoIter<bool>> {
+        Self::new(parse_input(input))
     }
 }
 
 impl<T: Iterator<Item=bool>> Parser<T> {
+    fn new<B: IntoIterator<Item=bool>>(b: B) -> Parser<B::IntoIter> {
+        Parser {
+            stream: b.into_iter(),
+            current: 0,
+        }
+    }
+
     fn next(&mut self) -> bool {
         self.current += 1;
         self.stream.next().unwrap()
@@ -162,20 +170,19 @@ mod test {
 
     #[test]
     fn test_parse_n() {
-        let mut parser = new_parser("A41");
-        let n = parser.parse_n(6);
+        let n = Parser::of_str("A41").parse_n(6);
         assert_eq!(41, n);
     }
 
     #[test]
     fn test_parse_literal() {
-        let mut parser = new_parser("D2FE28");
-        assert_eq!(Packet { version: 6, type_id: 4, packet_type: PacketType::Literal(2021) }, parser.parse_packet())
+        let packet = Parser::of_str("D2FE28").parse_packet();
+        assert_eq!(Packet { version: 6, type_id: 4, packet_type: PacketType::Literal(2021) }, packet)
     }
 
     #[test]
     fn test_operator_0() {
-        let mut parser = new_parser("38006F45291200");
+        let packet = Parser::of_str("38006F45291200").parse_packet();
         let exp = Packet {
             version: 1,
             type_id: 6,
@@ -194,6 +201,6 @@ mod test {
                 ]
             }
         };
-        assert_eq!(exp, parser.parse_packet())
+        assert_eq!(exp, packet)
     }
 }
