@@ -6,19 +6,8 @@ pub struct Solution;
 impl crate::Solution for Solution {
    fn solve_1(&self, input: String) -> String {
        let target = parse_input(&input);
-       let mut res = 0;
-       for vx in 1..50 {
-           for vy in 0..500 {
-               let traj = launch(Point(vx, vy), &target);
-               if traj.iter().any(|p| target.contains(*p)) {
-                   log::debug!("{:?}", traj);
-                   let max = traj.into_iter().map(|p| p.1).max().unwrap();
-                   if max > res {
-                       res = max;
-                   }
-               }
-           }
-       }
+       let b = target.bottom_left.1.abs();
+       let res = b * (b - 1) / 2;
 
        format!("{}", res)
    }
