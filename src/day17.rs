@@ -9,7 +9,7 @@ impl crate::Solution for Solution {
        let mut res = 0;
        for vx in 1..50 {
            for vy in 0..500 {
-               let traj = launch(Point(vx, vy));
+               let traj = launch(Point(vx, vy), &target);
                if traj.iter().any(|p| target.contains(*p)) {
                    log::debug!("{:?}", traj);
                    let max = traj.into_iter().map(|p| p.1).max().unwrap();
@@ -28,7 +28,7 @@ impl crate::Solution for Solution {
        let mut res = 0;
        for vx in 1..100 {
            for vy in -200..500 {
-               let traj = launch(Point(vx, vy));
+               let traj = launch(Point(vx, vy), &target);
                if traj.iter().any(|p| target.contains(*p)) {
                    res += 1;
                }
@@ -70,11 +70,14 @@ impl GridBox {
     }
 }
 
-fn launch(init_vel: Point) -> Vec<Point> {
+fn launch(init_vel: Point, target: &GridBox) -> Vec<Point> {
     let mut probe = Probe { pos: Point(0, 0), vel: init_vel };
     let mut result = Vec::new();
     for _ in 0..500 {
         probe.step();
+        if probe.pos.0 > target.top_right.0 || probe.pos.1 < target.bottom_left.1 {
+            break
+        }
         result.push(probe.pos);
     }
     result
