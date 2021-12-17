@@ -1,22 +1,20 @@
-use std::vec::IntoIter;
-
 pub struct Solution;
 
 impl crate::Solution for Solution {
    fn solve_1(&self, input: String) -> String {
-       let packet = Parser::of_str(&input).parse_packet();
+       let result = Parser::of_str(&input, VersionVisitor::new()).parse().result();
 
-       format!("{}", packet.sum_version())
+       format!("{}", result)
    }
 
    fn solve_2(&self, input: String) -> String {
-       let packet = Parser::of_str(&input).parse_packet();
+       let result = Parser::of_str(&input, EvalVisitor::new()).parse().result();
 
-       format!("{}", packet.eval())
+       format!("{}", result)
    }
 }
 
-fn parse_input(input: &str) -> Vec<bool> {
+fn parse_input(input: &str) -> impl Iterator<Item=bool> + '_ {
     input.trim().chars()
         .flat_map(|c| {
             let mut buf = [0; 4];
@@ -29,26 +27,32 @@ fn parse_input(input: &str) -> Vec<bool> {
                 n & 0b1 == 0b1,
             ]
         })
-        .collect()
 }
 
-struct Parser<T: Iterator<Item=bool>> {
+struct Parser<T, V: PacketVisitor> {
     stream: T,
     current: usize,
+    visitor: V,
 }
 
-impl Parser<IntoIter<bool>> {
-    fn of_str(input: &str) -> Parser<IntoIter<bool>> {
-        Self::new(parse_input(input))
+impl<V: PacketVisitor> Parser<(), V> {
+    fn of_str(input: &str, visitor: V) -> Parser<impl Iterator<Item=bool> + '_, V> {
+        Parser::new(parse_input(input), visitor)
     }
-}
 
-impl<T: Iterator<Item=bool>> Parser<T> {
-    fn new<B: IntoIterator<Item=bool>>(b: B) -> Parser<B::IntoIter> {
+    fn new<B: IntoIterator<Item=bool>>(b: B, visitor: V) -> Parser<B::IntoIter, V> {
         Parser {
             stream: b.into_iter(),
             current: 0,
+            visitor
         }
+    }
+}
+
+impl<T: Iterator<Item=bool>, V: PacketVisitor> Parser<T, V> {
+    fn parse(mut self) -> V {
+        self.parse_packet();
+        self.visitor
     }
 
     fn next(&mut self) -> bool {
@@ -56,15 +60,17 @@ impl<T: Iterator<Item=bool>> Parser<T> {
         self.stream.next().unwrap()
     }
 
-    fn parse_packet(&mut self) -> Packet {
+    fn parse_packet(&mut self) {
         let version = self.parse_n(3) as u8;
         let type_id = self.parse_n(3) as u8;
-        let packet_type = if type_id == 4 {
-            PacketType::Literal(self.parse_literal())
+        self.visitor.begin(version, type_id);
+        if type_id == 4 {
+            let v = self.parse_literal();
+            self.visitor.end_literal(v);
         } else {
-            PacketType::Operator { children: self.parse_operator() }
-        };
-        Packet { version, type_id, packet_type }
+            self.parse_operator();
+            self.visitor.end_operator();
+        }
     }
 
     fn parse_n(&mut self, bits: u8) -> u32 {
@@ -92,65 +98,97 @@ impl<T: Iterator<Item=bool>> Parser<T> {
         res
     }
 
-    fn parse_operator(&mut self) -> Vec<Packet> {
+    fn parse_operator(&mut self) {
         let length_type = self.next();
-        let mut children = Vec::new();
         if length_type {
             let n = self.parse_n(11);
             for _ in 0..n {
-                children.push(self.parse_packet());
+                self.parse_packet();
             }
         } else {
             let n = self.parse_n(15) as usize;
             let start = self.current;
             while self.current - start < n {
-                children.push(self.parse_packet());
+                self.parse_packet();
             }
         }
-        children
     }
 }
 
-#[derive(Eq, PartialEq, Debug)]
-struct Packet {
-    version: u8,
+#[allow(unused_variables)]
+trait PacketVisitor {
+    fn begin(&mut self, version: u8, type_id: u8) {}
+    fn end_literal(&mut self, value: u64) {}
+    fn end_operator(&mut self) {}
+}
+
+struct VersionVisitor {
+    total: u32,
+}
+
+impl VersionVisitor {
+    fn new() -> VersionVisitor {
+        VersionVisitor {
+            total: 0,
+        }
+    }
+
+    fn result(self) -> u32 {
+        self.total
+    }
+}
+
+impl PacketVisitor for VersionVisitor {
+    fn begin(&mut self, version: u8, _type_id: u8) {
+        self.total += version as u32;
+    }
+}
+
+struct EvalVisitor {
+    stack: Vec<EvalFrame>,
+}
+
+impl EvalVisitor {
+    fn new() -> EvalVisitor {
+        EvalVisitor {
+            stack: vec![EvalFrame { type_id: 0, values: Vec::new() }],
+        }
+    }
+
+    fn result(self) -> u64 {
+        self.stack[0].values[0]
+    }
+}
+
+impl PacketVisitor for EvalVisitor {
+    fn begin(&mut self, _version: u8, type_id: u8) {
+        self.stack.push(EvalFrame { type_id, values: Vec::new() });
+    }
+
+    fn end_literal(&mut self, value: u64) {
+        self.stack.pop().unwrap();
+        self.stack.last_mut().unwrap().values.push(value);
+    }
+
+    fn end_operator(&mut self) {
+        let EvalFrame { type_id, values } = self.stack.pop().unwrap();
+        let value = match type_id {
+            0 => values.into_iter().sum(),
+            1 => values.into_iter().product(),
+            2 => values.into_iter().min().unwrap(),
+            3 => values.into_iter().max().unwrap(),
+            5 => if values[0] > values[1] { 1 } else { 0 },
+            6 => if values[0] < values[1] { 1 } else { 0 },
+            7 => if values[0] == values[1] { 1 } else { 0 },
+            unknown => panic!("unknown type id {}", unknown),
+        };
+        self.stack.last_mut().unwrap().values.push(value);
+    }
+}
+
+struct EvalFrame {
     type_id: u8,
-    packet_type: PacketType,
-}
-
-impl Packet {
-    fn sum_version(&self) -> u64 {
-        self.version as u64 + match &self.packet_type {
-            PacketType::Literal(_) => 0,
-            PacketType::Operator { children } => {
-                children.iter().map(|it| it.sum_version()).sum()
-            }
-        }
-    }
-
-    fn eval(&self) -> u64 {
-        match &self.packet_type {
-            PacketType::Literal(n) => *n,
-            PacketType::Operator { children } => {
-                match self.type_id {
-                    0 => children.iter().map(|it| it.eval()).sum(),
-                    1 => children.iter().map(|it| it.eval()).product(),
-                    2 => children.iter().map(|it| it.eval()).min().unwrap(),
-                    3 => children.iter().map(|it| it.eval()).max().unwrap(),
-                    5 => if children[0].eval() > children[1].eval() { 1 } else { 0 },
-                    6 => if children[0].eval() < children[1].eval() { 1 } else { 0 },
-                    7 => if children[0].eval() == children[1].eval() { 1 } else { 0 },
-                    unknown => panic!("unknown type id {}", unknown),
-                }
-            }
-        }
-    }
-}
-
-#[derive(Eq, PartialEq, Debug)]
-enum PacketType {
-    Literal(u64),
-    Operator { children: Vec<Packet> }
+    values: Vec<u64>,
 }
 
 #[cfg(test)]
@@ -165,7 +203,7 @@ mod test {
             false, true, false, false,
             false, false, false, true,
         ];
-        assert_eq!(exp, parse_input("A41"));
+        assert_eq!(exp, parse_input("A41").collect::<Vec<_>>());
     }
 
     #[test]
