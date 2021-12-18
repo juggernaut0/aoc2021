@@ -55,15 +55,17 @@ impl SfNum {
     }
 
     fn add(a: SfNum, b: SfNum) -> SfNum {
-        SfNum::Pair(Box::new(a), Box::new(b)).reduce()
+        let mut raw = SfNum::Pair(Box::new(a), Box::new(b));
+        raw.reduce();
+        raw
     }
 
-    fn reduce(mut self) -> SfNum {
+    fn reduce(&mut self) {
         log::debug!("reducing {:?}", self);
         loop {
             match reduce_step(self) {
-                Continue(n) => self = n,
-                Break(n) => return n
+                Continue(()) => continue,
+                Break(()) => break,
             }
         }
     }
@@ -189,7 +191,7 @@ fn find_large_reg(num: &SfNum, mut path: Vec<PathDir>) -> Option<Vec<PathDir>> {
     }
 }
 
-fn reduce_step(mut num: SfNum) -> ControlFlow<SfNum, SfNum> {
+fn reduce_step(num: &mut SfNum) -> ControlFlow<()> {
     log::debug!("reduce step {:?}", num);
     if let Some(path) = find_nested(&num, Vec::new()) {
         let target = num.navigate_mut(&path);
@@ -201,7 +203,7 @@ fn reduce_step(mut num: SfNum) -> ControlFlow<SfNum, SfNum> {
         if let Some(rc) = find_right_cousin(&num, &path) {
             *num.navigate_mut(&rc).as_reg_mut() += b.to_reg();
         }
-        Continue(num)
+        Continue(())
     } else if let Some(path) = find_large_reg(&num, Vec::new()) {
         let n = num.navigate(&path).to_reg();
         let a = n / 2;
@@ -211,9 +213,9 @@ fn reduce_step(mut num: SfNum) -> ControlFlow<SfNum, SfNum> {
             Box::new(SfNum::Regular(a)),
             Box::new(SfNum::Regular(b)),
         );
-        Continue(num)
+        Continue(())
     } else {
-        Break(num)
+        Break(())
     }
 }
 
@@ -298,8 +300,9 @@ mod test {
 
     #[test]
     fn test_reduce() {
-        let num: SfNum = "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]".parse().unwrap();
+        let mut num: SfNum = "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]".parse().unwrap();
+        num.reduce();
         let exp: SfNum = "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]".parse().unwrap();
-        assert_eq!(exp, num.reduce());
+        assert_eq!(exp, num);
     }
 }
