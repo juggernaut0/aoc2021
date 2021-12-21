@@ -62,12 +62,7 @@ impl SfNum {
 
     fn reduce(&mut self) {
         log::debug!("reducing {:?}", self);
-        loop {
-            match reduce_step(self) {
-                Continue(()) => continue,
-                Break(()) => break,
-            }
-        }
+        while let Continue(()) = reduce_step(self) { }
     }
 
     fn magnitude(&self) -> i32 {
@@ -193,18 +188,18 @@ fn find_large_reg(num: &SfNum, mut path: Vec<PathDir>) -> Option<Vec<PathDir>> {
 
 fn reduce_step(num: &mut SfNum) -> ControlFlow<()> {
     log::debug!("reduce step {:?}", num);
-    if let Some(path) = find_nested(&num, Vec::new()) {
+    if let Some(path) = find_nested(num, Vec::new()) {
         let target = num.navigate_mut(&path);
         let old = std::mem::replace(target, SfNum::Regular(0));
         let (a, b) = old.into_pair();
-        if let Some(lc) = find_left_cousin(&num, &path) {
+        if let Some(lc) = find_left_cousin(num, &path) {
             *num.navigate_mut(&lc).as_reg_mut() += a.to_reg();
         }
-        if let Some(rc) = find_right_cousin(&num, &path) {
+        if let Some(rc) = find_right_cousin(num, &path) {
             *num.navigate_mut(&rc).as_reg_mut() += b.to_reg();
         }
         Continue(())
-    } else if let Some(path) = find_large_reg(&num, Vec::new()) {
+    } else if let Some(path) = find_large_reg(num, Vec::new()) {
         let n = num.navigate(&path).to_reg();
         let a = n / 2;
         let b = n - a;
