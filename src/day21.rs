@@ -1,7 +1,6 @@
 use std::cmp::min;
-use std::collections::HashMap;
 use std::hash::Hash;
-use std::ops::Add;
+use crate::util::Counter;
 
 pub struct Solution;
 
@@ -57,7 +56,7 @@ struct DiracDiceGame<T: Dice> {
 impl<T: Dice> DiracDiceGame<T> {
     fn new(dice: T, p1_pos: u32, p2_pos: u32, score_limit: u32) -> DiracDiceGame<T> {
         let mut state = Counter::new();
-        state.count_n(GameState { p1: PlayerState::new(p1_pos), p2: PlayerState::new(p2_pos) }, 1);
+        state.count(GameState { p1: PlayerState::new(p1_pos), p2: PlayerState::new(p2_pos) });
         DiracDiceGame {
             dice,
             state,
@@ -70,9 +69,9 @@ impl<T: Dice> DiracDiceGame<T> {
     fn step(&mut self) -> bool {
         let rolls = self.dice.roll_3();
         let mut new_states = Counter::new();
-        for (state, state_count) in self.state.iter() {
+        for (state, state_count) in &self.state {
             let player = if self.p1_turn { state.p1 } else { state.p2 };
-            for (roll, roll_count) in rolls.iter() {
+            for (roll, roll_count) in &rolls {
                 let mut new_player = player;
                 let new_state_count = roll_count * state_count;
                 new_player.advance(*roll);
@@ -147,7 +146,7 @@ trait Dice {
         for r1 in r1s {
             for r2 in &r2s {
                 for r3 in &r3s {
-                    res.count_n(r1 + r2 + r3, 1);
+                    res.count(r1 + r2 + r3);
                 }
             }
         }
@@ -178,31 +177,5 @@ struct DiracDice;
 impl Dice for DiracDice {
     fn roll(&mut self) -> Vec<u32> {
         vec![1, 2, 3]
-    }
-}
-
-struct Counter<T, C = u64> {
-    counts: HashMap<T, C>,
-}
-
-impl<T: Hash + Eq, C: Add<Output=C> + Default + Copy + Eq> Counter<T, C> {
-    fn new() -> Counter<T, C> {
-        Counter {
-            counts: HashMap::new(),
-        }
-    }
-
-    fn count_n(&mut self, k: T, n: C) -> C {
-        let entry = self.counts.entry(k).or_default();
-        *entry = *entry + n;
-        *entry
-    }
-
-    fn iter(&self) -> impl Iterator<Item=(&T, &C)> + '_ {
-        self.counts.iter()
-    }
-
-    fn is_empty(&self) -> bool {
-        self.counts.is_empty() || self.counts.values().all(|v| v == &C::default())
     }
 }

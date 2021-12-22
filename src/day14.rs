@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::str::FromStr;
+use crate::util::Counter;
 
 pub struct Solution;
 
@@ -16,9 +17,9 @@ impl crate::Solution for Solution {
 fn solve(input: &str, times: i32) -> String {
     let (template, rules) = parse_input(input);
 
-    let mut pair_counts = HashMap::new();
+    let mut pair_counts = Counter::new();
     for window in template.windows(2) {
-        *pair_counts.entry((window[0], window[1])).or_default() += 1;
+        pair_counts.count((window[0], window[1]));
     }
 
     let res = (0..times)
@@ -62,20 +63,20 @@ impl FromStr for Rule {
     }
 }
 
-fn apply_rules(pairs: HashMap<(char, char), u64>, rules: &[Rule]) -> HashMap<(char, char), u64> {
+fn apply_rules(pairs: Counter<(char, char)>, rules: &[Rule]) -> Counter<(char, char)> {
     log::debug!("{:?}", pairs);
 
-    let mut res = HashMap::new();
+    let mut res = Counter::new();
 
     for ((a, b), count) in pairs {
         if let Some(rule) = rules.iter().find(|rule| rule.in1 == a && rule.in2 == b) {
             let c = rule.out;
             log::debug!("adding a {}{} and {}{} from {}{} -> {}", a, c, c, b, a, b, c);
-            *res.entry((a, c)).or_default() += count;
-            *res.entry((c, b)).or_default() += count;
+            res.count_n((a, c), count);
+            res.count_n((c, b), count);
         } else {
             log::debug!("rule not found for {}{}", a, b);
-            *res.entry((a, b)).or_default() += count;
+            res.count_n((a, b), count);
         }
     }
 
@@ -84,7 +85,6 @@ fn apply_rules(pairs: HashMap<(char, char), u64>, rules: &[Rule]) -> HashMap<(ch
 
 #[cfg(test)]
 mod test {
-    use crate::Solution;
     use super::*;
     #[test]
     fn pt1_ex() {
